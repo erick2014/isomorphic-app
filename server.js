@@ -6,6 +6,7 @@ const twitter=require('twitter');
 const routes=require('./routes');
 const config=require('./config');
 const streamHandler=require('./utils/streamHandler');
+const socktIo=require("socket.io");
 
 //create an express instance 
 var app=express();
@@ -23,9 +24,6 @@ app.disable('etag');
 //connect to our mongo database 
 mongoose.connect('mongodb://localhost/react-tweets');
 
-//crete a new ntwitter instance
-var twit=new twitter(config.twitter);
-
 //root root route
 app.get('/',routes.index);
 
@@ -39,3 +37,18 @@ app.use("/",express.static(__dirname+"/public/"));
 var server=http.createServer(app).listen(port,function(){
 	console.log("our server is running on port "+port)
 })
+
+//Initialize socket.io
+var io=socktIo.listen(server);
+
+//crete a new ntwitter instance
+var twit=new twitter(config.twitter);
+
+//Set a stream listener for tweets matching tracking keywords
+twit.stream(
+	'statuses/filter',
+	{track:'scotch_io,#scotchio'},
+	function(stream){
+		streamHandler(stream,io);
+	}
+)
